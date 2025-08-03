@@ -1,16 +1,13 @@
-import sys
-from .core.orchestration import Orchestrator
+from flask import Flask
 
-def main():
-    print("Starting Omni-Dev Agent...")
-    
-    # Initialize the orchestrator
-    orchestrator = Orchestrator()
-    
-    # Example usage
-    sample_request = "Develop a web feedback form feature with backend API and frontend interface"
-    print(f"\nProcessing request: {sample_request}")
-    orchestrator.execute(sample_request)
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
+if __name__ == '__main__':
+    app.run(debug=True)
     
     print("\nOmni-Dev Agent session completed.")
 

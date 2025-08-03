@@ -8,6 +8,7 @@ It analyzes task descriptions and creates detailed, actionable plans.
 import json
 from typing import Dict, List, Any
 from datetime import datetime
+from .document_planner_models import TaskPlan, Phase, Step
 
 
 class DocumentPlanner:
@@ -129,7 +130,7 @@ class DocumentPlanner:
             }
         }
     
-    def generate_plan(self, task_description: str, task_type: str = "general_development") -> Dict[str, Any]:
+    def generate_plan(self, task_description: str, task_type: str = "general_development") -> TaskPlan:
         """
         Generate a structured plan for the given task.
         
@@ -146,35 +147,41 @@ class DocumentPlanner:
         
         template = self.plan_templates.get(task_type, self.plan_templates["general_development"])
         
-        plan = {
-            "task_description": task_description,
-            "task_type": task_type,
-            "created_at": datetime.now().isoformat(),
-            "estimated_phases": len(template["phases"]),
-            "phases": []
-        }
+        phases_list = []
         
         # Generate phases based on template
         for i, phase_name in enumerate(template["phases"], 1):
-            steps = self._get_steps_for_phase(phase_name, template)
-            effort = self._estimate_effort(phase_name, steps, template, task_description)
+            step_descriptions = self._get_steps_for_phase(phase_name, template)
+            steps = [Step(description=desc) for desc in step_descriptions]
+            effort = self._estimate_effort(phase_name, step_descriptions, template, task_description)
+            estimated_hours = self._convert_effort_to_hours(effort)
+            dependencies = self._get_phase_dependencies(i, len(template["phases"]))
             
-            phase = {
-                "phase_number": i,
-                "phase_name": phase_name,
-                "steps": steps,
-                "estimated_effort": effort,
-                "estimated_hours": self._convert_effort_to_hours(effort),
-                "dependencies": self._get_phase_dependencies(i, len(template["phases"]))
-            }
-            plan["phases"].append(phase)
+            phase = Phase(
+                phase_number=i,
+                phase_name=phase_name,
+                steps=steps,
+                estimated_effort=effort,
+                estimated_hours=estimated_hours,
+                dependencies=dependencies
+            )
+            phases_list.append(phase)
         
         # Add total estimation
-        total_hours = sum(phase["estimated_hours"] for phase in plan["phases"])
-        plan["total_estimated_hours"] = total_hours
-        plan["total_estimated_days"] = round(total_hours / 8, 1)  # Assuming 8-hour work days
+        total_hours = sum(phase.estimated_hours for phase in phases_list)
+        total_days = round(total_hours / 8, 1)  # Assuming 8-hour work days
         
-        return plan
+        task_plan = TaskPlan(
+            task_description=task_description,
+            task_type=task_type,
+            created_at=datetime.now().isoformat(),
+            estimated_phases=len(template["phases"]),
+            total_estimated_hours=total_hours,
+            total_estimated_days=total_days,
+            phases=phases_list
+        )
+        
+        return task_plan
     
     def _is_web_development_task(self, description: str) -> bool:
         """Determine if a task is web development related."""
