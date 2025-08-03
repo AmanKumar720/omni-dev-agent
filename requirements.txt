@@ -1,28 +1,15 @@
-# Omni-Dev Agent
+# Core dependencies for Omni-Dev Agent
+Flask>=3.0.0
+SQLAlchemy>=2.0.0
+requests>=2.31.0
+pytest>=7.4.0
+selenium>=4.15.0
+sphinx>=7.2.0
 
-## Virtual Environment
-For dependency management, it's recommended to use a virtual environment.
-
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-```
-
-## Dependencies
-List all dependencies here.
-
-```
-Flask
-SQLAlchemy
-requests
-pytest
-selenium
-sphinx
-```
-
-Install dependencies with:
-
-```bash
-pip install -r requirements.txt
-```
+# Additional useful packages
+# pydantic>=2.6.0  # Commented out due to Python 3.13 compatibility issues
+click>=8.1.0
+colorama>=0.4.0
+rich>=13.7.0
+pyyaml>=6.0.0
 
