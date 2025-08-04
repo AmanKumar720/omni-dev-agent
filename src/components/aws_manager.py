@@ -68,12 +68,12 @@ class AWSManager:
     aws.list_codedeploy_apps()
     """
 
-    def __init__(self, region_name='us-east-1'):
+    def __init__(self, region_name="us-east-1"):
         self.region = region_name
-        self.ec2 = boto3.client('ec2', region_name=self.region)
-        self.lambda_client = boto3.client('lambda', region_name=self.region)
-        self.ecs = boto3.client('ecs', region_name=self.region)
-        self.codedeploy = boto3.client('codedeploy', region_name=self.region)
+        self.ec2 = boto3.client("ec2", region_name=self.region)
+        self.lambda_client = boto3.client("lambda", region_name=self.region)
+        self.ecs = boto3.client("ecs", region_name=self.region)
+        self.codedeploy = boto3.client("codedeploy", region_name=self.region)
 
     def deploy_ec2_instance(self, config):
         try:
@@ -86,9 +86,11 @@ class AWSManager:
     def list_ec2_instances(self):
         try:
             response = self.ec2.describe_instances()
-            for reservation in response['Reservations']:
-                for instance in reservation['Instances']:
-                    print(f"Instance ID: {instance['InstanceId']}, State: {instance['State']['Name']}")
+            for reservation in response["Reservations"]:
+                for instance in reservation["Instances"]:
+                    print(
+                        f"Instance ID: {instance['InstanceId']}, State: {instance['State']['Name']}"
+                    )
         except ClientError as e:
             print(f"EC2 List Error: {e}")
 
@@ -103,7 +105,7 @@ class AWSManager:
     def list_lambda_functions(self):
         try:
             response = self.lambda_client.list_functions()
-            for fn in response['Functions']:
+            for fn in response["Functions"]:
                 print(f"Function Name: {fn['FunctionName']}, Runtime: {fn['Runtime']}")
         except ClientError as e:
             print(f"Lambda List Error: {e}")
@@ -119,7 +121,7 @@ class AWSManager:
     def list_ecs_clusters(self):
         try:
             response = self.ecs.list_clusters()
-            for arn in response['clusterArns']:
+            for arn in response["clusterArns"]:
                 print(f"Cluster ARN: {arn}")
         except ClientError as e:
             print(f"ECS List Error: {e}")
@@ -135,7 +137,7 @@ class AWSManager:
     def list_codedeploy_apps(self):
         try:
             response = self.codedeploy.list_applications()
-            for app in response['applications']:
+            for app in response["applications"]:
                 print(f"CodeDeploy Application: {app}")
         except ClientError as e:
             print(f"CodeDeploy List Error: {e}")

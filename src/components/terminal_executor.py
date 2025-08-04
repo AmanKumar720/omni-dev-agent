@@ -1,4 +1,3 @@
-
 import subprocess
 import threading
 import queue
@@ -6,6 +5,7 @@ import queue
 from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
 
 class TerminalExecutor:
     """
@@ -31,7 +31,7 @@ class TerminalExecutor:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                encoding='utf-8'
+                encoding="utf-8",
             )
 
             stdout, stderr = process.communicate(timeout=timeout)
@@ -46,7 +46,7 @@ class TerminalExecutor:
                 "stdout": stdout,
                 "stderr": stderr,
                 "exit_code": exit_code,
-                "status": status
+                "status": status,
             }
 
         except subprocess.TimeoutExpired as e:
@@ -57,14 +57,10 @@ class TerminalExecutor:
                 "stdout": stdout,
                 "stderr": stderr,
                 "exit_code": -1,
-                "status": f"timeout expired after {timeout} seconds"
+                "status": f"timeout expired after {timeout} seconds",
             }
         except Exception as e:
-            logger.error(f"An error occurred while executing command: {command}", exc_info=True)
-            return {
-                "stdout": "",
-                "stderr": str(e),
-                "exit_code": -1,
-                "status": "error"
-            }
-
+            logger.error(
+                f"An error occurred while executing command: {command}", exc_info=True
+            )
+            return {"stdout": "", "stderr": str(e), "exit_code": -1, "status": "error"}

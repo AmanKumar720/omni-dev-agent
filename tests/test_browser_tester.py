@@ -1,6 +1,6 @@
-
 import unittest
 from src.components.browser_testing.tester import BrowserTester
+
 
 class TestBrowserTester(unittest.TestCase):
 
@@ -16,7 +16,9 @@ class TestBrowserTester(unittest.TestCase):
             # Catching WebDriver exceptions if Chrome is not found
             self.fail(f"Chrome navigation test failed with an exception: {e}")
 
-    @unittest.skip("Skipping Firefox test for now. Please ensure Firefox and geckodriver are installed.")
+    @unittest.skip(
+        "Skipping Firefox test for now. Please ensure Firefox and geckodriver are installed."
+    )
     def test_firefox_navigation(self):
         """Test navigation with Firefox."""
         try:
@@ -28,6 +30,6 @@ class TestBrowserTester(unittest.TestCase):
         except Exception as e:
             self.fail(f"Firefox navigation test failed with an exception: {e}")
 
-if __name__ == '__main__':
-    unittest.main()
 
+if __name__ == "__main__":
+    unittest.main()

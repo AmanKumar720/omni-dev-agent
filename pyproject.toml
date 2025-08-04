@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omni-dev-agent"
+version = "0.1.0"
+description = "Intelligent development agent for automated component management and integration"
+authors = [{name = "Aman Kumar"}]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "Flask>=3.0.0",
+    "SQLAlchemy>=2.0.0",
+    "requests>=2.31.0",
+    "pytest>=7.4.0",
+    "selenium>=4.15.0",
+    "sphinx>=7.2.0",
+    "markdown>=3.4.0",
+    "docutils>=0.20.1",
+    "beautifulsoup4>=4.12.2",
+    "lxml>=5.2.1",
+    "commonmark>=0.9.1",
+    "PyPDF2>=3.0.1",
+    "pdfplumber>=0.10.2",
+    "pytesseract>=0.3.10",
+    "pyyaml>=6.0.0",
+    "spacy>=3.7.4",
+    "scikit-learn>=1.4.2",
+    "nltk>=3.8.1",
+    "transformers>=4.41.1",
+    "networkx>=3.3",
+    "sentence-transformers>=2.7.0",
+    "astor>=0.8.1",
+    "black>=24.4.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_paths = ["."]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'

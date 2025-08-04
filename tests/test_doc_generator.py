@@ -1,8 +1,8 @@
-
 import unittest
 import os
 import shutil
 from src.components.documentation_generator.generator import DocGenerator
+
 
 class TestDocGenerator(unittest.TestCase):
 
@@ -31,6 +31,6 @@ class TestDocGenerator(unittest.TestCase):
         self.assertEqual(result["status"], "error")
         self.assertIn("Source directory not found", result["errors"])
 
-if __name__ == '__main__':
-    unittest.main()
 
+if __name__ == "__main__":
+    unittest.main()

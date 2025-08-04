@@ -2,11 +2,13 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+
 class Step(BaseModel):
     description: str
     status: str = "pending"
     output: Optional[str] = None
     error: Optional[str] = None
+
 
 class Phase(BaseModel):
     phase_number: int
@@ -16,6 +18,7 @@ class Phase(BaseModel):
     estimated_hours: int
     dependencies: List[int]
     status: str = "pending"
+
 
 class TaskPlan(BaseModel):
     task_description: str

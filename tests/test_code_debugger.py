@@ -2,6 +2,7 @@ import unittest
 import os
 from src.components.code_development.debugger import CodeDebugger
 
+
 class TestCodeDebugger(unittest.TestCase):
 
     def setUp(self):
@@ -16,7 +17,7 @@ def my_function():
     unused_variable = 1
     print("Hello, world!")
 '''
-        with open(self.test_file_path, "w", encoding='utf-8') as f:
+        with open(self.test_file_path, "w", encoding="utf-8") as f:
             f.write(file_content)
 
     def tearDown(self):
@@ -30,7 +31,7 @@ def my_function():
 
     def test_run_tests(self):
         """Test the run_tests method."""
-        test_file_content = '''
+        test_file_content = """
 import unittest
 
 class MyTest(unittest.TestCase):
@@ -39,9 +40,9 @@ class MyTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-'''
+"""
         test_file_name = "test_to_run.py"
-        with open(test_file_name, "w", encoding='utf-8') as f:
+        with open(test_file_name, "w", encoding="utf-8") as f:
             f.write(test_file_content)
 
         result = self.debugger.run_tests(test_file_name)
@@ -50,5 +51,6 @@ if __name__ == '__main__':
 
         os.remove(test_file_name)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

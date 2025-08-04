@@ -1,6 +1,6 @@
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
 
 class BrowserTester:
     """
@@ -48,4 +48,3 @@ class BrowserTester:
         Closes the browser.
         """
         self.driver.quit()
-

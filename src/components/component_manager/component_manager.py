@@ -172,8 +172,8 @@ if __name__ == "__main__":
         documentation_content="Example Supabase documentation content."
     )
 
-    print("
 =====================================")
+    print("\n=====================================")
 
     # Example 2: Agent-initiated component identification from requirements document
     mock_srs_content = """
@@ -187,8 +187,8 @@ if __name__ == "__main__":
     """
     analyze_project_requirements(mock_srs_content)
 
-    print("
 =====================================")
+    print("\n=====================================")
 
     # Example 3: Agent-initiated component identification from external events
     monitor_external_events("c:/Users/Aman kumar/omni-dev-agent/requirements.txt")
