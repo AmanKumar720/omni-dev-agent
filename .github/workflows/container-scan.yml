@@ -98,7 +98,7 @@ jobs:
         echo "View detailed results in the [Security tab](https://github.com/${{ github.repository }}/security/code-scanning)" >> container-security-report.md
 
     - name: Upload scan reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: container-security-reports

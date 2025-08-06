@@ -94,7 +94,7 @@ jobs:
         semgrep --config=auto --json --output=semgrep-results.json src/ || true
     
     - name: Upload Semgrep results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: semgrep-results
