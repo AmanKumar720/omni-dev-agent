@@ -5,14 +5,30 @@ from ..components.browser_testing.tester import BrowserTester
 from ..components.documentation_generator.generator import DocGenerator
 from ..components.document_planner_models import TaskPlan, Phase, Step
 from ..utils.logging_config import get_logger
+from .background_worker import BackgroundTaskManager, TaskPriority
+from ..config.background_config import auto_load_config
 
 logger = get_logger(__name__)
 
 
 class Orchestrator:
-    def __init__(self):
+    def __init__(self, use_background_processing: bool = True):
         self.components = {}
         self.planner = DocumentPlanner()
+        self.use_background_processing = use_background_processing
+        
+        # Initialize background task manager if enabled
+        if self.use_background_processing:
+            config = auto_load_config()
+            worker_config = config.threaded_worker.__dict__ if config.worker_type == "threaded" else {}
+            self.task_manager = BackgroundTaskManager(
+                worker_type=config.worker_type,
+                monitor_enabled=config.monitoring.enabled,
+                **worker_config
+            )
+        else:
+            self.task_manager = None
+        
         self.load_components()
 
     def load_components(self):
@@ -32,12 +48,28 @@ class Orchestrator:
         logger.info("\nGenerated Plan in Markdown:\n" + markdown_plan)
         return task_plan.phases
 
-    def execute(self, request):
+    def execute(self, request, use_background: bool = None):
+        """Execute a request with optional background processing."""
         task = self.parse_request(request)
         sub_tasks = self.decompose_task(task)
-
-        for phase in sub_tasks:
-            self.handle_sub_task(phase)
+        
+        # Determine if we should use background processing
+        use_bg = use_background if use_background is not None else self.use_background_processing
+        
+        if use_bg and self.task_manager:
+            # Submit phases as background tasks
+            task_ids = []
+            for phase in sub_tasks:
+                task_id = self.submit_phase_as_background_task(phase)
+                task_ids.append(task_id)
+            
+            logger.info(f"Submitted {len(task_ids)} phases as background tasks: {task_ids}")
+            return task_ids
+        else:
+            # Execute synchronously
+            for phase in sub_tasks:
+                self.handle_sub_task(phase)
+            return None
 
     def handle_sub_task(self, phase: Phase):
         logger.info(f"Handling phase: {phase.phase_name}")
@@ -105,6 +137,82 @@ class Orchestrator:
             else:
                 logger.warning(f"Unrecognized step: {step}")
         logger.info("---")
+    
+    def submit_phase_as_background_task(self, phase: Phase) -> str:
+        """Submit a phase as a background task."""
+        if not self.task_manager:
+            raise RuntimeError("Background task manager not available")
+        
+        # Determine priority based on phase content
+        priority = self._determine_phase_priority(phase)
+        
+        task_id = self.task_manager.submit_task(
+            func=self.handle_sub_task,
+            phase,
+            name=f"phase_{phase.phase_name}",
+            priority=priority,
+            timeout=None,  # Let long-running tasks complete
+            tags=["orchestrator", "phase", phase.phase_name]
+        )
+        
+        logger.info(f"Submitted phase '{phase.phase_name}' as background task {task_id}")
+        return task_id
+    
+    def _determine_phase_priority(self, phase: Phase) -> TaskPriority:
+        """Determine the priority of a phase based on its content."""
+        phase_name_lower = phase.phase_name.lower()
+        
+        # High priority for critical operations
+        if any(keyword in phase_name_lower for keyword in ['security', 'auth', 'critical', 'urgent']):
+            return TaskPriority.HIGH
+        
+        # Normal priority for most operations
+        if any(keyword in phase_name_lower for keyword in ['development', 'implementation', 'testing']):
+            return TaskPriority.NORMAL
+        
+        # Low priority for documentation and cleanup
+        if any(keyword in phase_name_lower for keyword in ['documentation', 'cleanup', 'maintenance']):
+            return TaskPriority.LOW
+        
+        return TaskPriority.NORMAL
+    
+    def get_background_task_status(self, task_id: str):
+        """Get the status of a background task."""
+        if not self.task_manager:
+            return None
+        
+        return self.task_manager.get_task_status(task_id)
+    
+    def get_background_task_result(self, task_id: str):
+        """Get the result of a background task."""
+        if not self.task_manager:
+            return None
+        
+        task = self.task_manager.get_task(task_id)
+        return task.result if task else None
+    
+    def cancel_background_task(self, task_id: str) -> bool:
+        """Cancel a background task."""
+        if not self.task_manager:
+            return False
+        
+        return self.task_manager.cancel_task(task_id)
+    
+    def get_background_stats(self):
+        """Get background processing statistics."""
+        if not self.task_manager:
+            return None
+        
+        return self.task_manager.get_stats()
+    
+    def shutdown(self):
+        """Shutdown the orchestrator and background processing."""
+        logger.info("Shutting down Orchestrator...")
+        
+        if self.task_manager:
+            self.task_manager.shutdown()
+        
+        logger.info("Orchestrator shutdown complete")
 
 
 # Usage example
