@@ -1,0 +1,104 @@
+name: Workflow Orchestration
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  post-ci-actions:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Trigger deployment workflows
+      if: github.event.workflow_run.head_branch == 'main'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Trigger additional workflows after successful CI
+          console.log('CI completed successfully on main branch');
+          console.log('Consider triggering deployment workflows here');
+
+    - name: Update project status
+      run: |
+        echo "📊 CI Pipeline Status: ✅ SUCCESS"
+        echo "🔧 Branch: ${{ github.event.workflow_run.head_branch }}"
+        echo "📈 Run ID: ${{ github.event.workflow_run.id }}"
+
+  workflow-monitor:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Check workflow health
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const workflows = [
+            'ci.yml',
+            'codeql.yml',
+            'coverage.yml',
+            'release.yml',
+            'container-scan.yml'
+          ];
+          
+          console.log('🔍 Checking workflow health...');
+          
+          for (const workflow of workflows) {
+            try {
+              const response = await github.rest.actions.getWorkflow({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: workflow
+              });
+              
+              console.log(`✅ ${workflow}: ${response.data.state}`);
+            } catch (error) {
+              console.log(`❌ ${workflow}: Error checking status`);
+            }
+          }
+
+    - name: Generate workflow report
+      run: |
+        cat > workflow-report.md << 'EOF'
+        # Workflow Health Report 📋
+
+        ## Active Workflows
+        
+        | Workflow | Purpose | Triggers |
+        |----------|---------|----------|
+        | CI | Main build and test pipeline | Push, PR, Manual |
+        | CodeQL | Security static analysis | Push, PR, Schedule |
+        | Coverage | Code coverage analysis | Push, PR, Manual |
+        | Release | Automated releases | Push to main |
+        | Container Scan | Container security | Dockerfile changes |
+        
+        ## Workflow Dependencies
+        
+        ```mermaid
+        graph TD
+            A[Code Push] --> B[CI Workflow]
+            A --> C[CodeQL Analysis]
+            A --> D[Coverage Analysis]
+            B --> E{All Tests Pass?}
+            E -->|Yes| F[Release Workflow]
+            E -->|No| G[Fix Issues]
+            F --> H[Build & Publish]
+            F --> I[Container Build]
+            I --> J[Security Scan]
+        ```
+        
+        Generated on: $(date)
+        EOF
+
+    - name: Upload workflow report
+      uses: actions/upload-artifact@v3
+      with:
+        name: workflow-health-report
+        path: workflow-report.md

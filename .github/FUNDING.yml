@@ -1,0 +1,35 @@
+# These are supported funding model platforms
+
+{% if github_sponsors %}
+github: {{ github_sponsors }}
+{% endif %}
+{% if patreon %}
+patreon: {{ patreon }}
+{% endif %}
+{% if open_collective %}
+open_collective: {{ open_collective }}
+{% endif %}
+{% if ko_fi %}
+ko_fi: {{ ko_fi }}
+{% endif %}
+{% if tidelift %}
+tidelift: {{ tidelift }}
+{% endif %}
+{% if community_bridge %}
+community_bridge: {{ community_bridge }}
+{% endif %}
+{% if liberapay %}
+liberapay: {{ liberapay }}
+{% endif %}
+{% if issuehunt %}
+issuehunt: {{ issuehunt }}
+{% endif %}
+{% if otechie %}
+otechie: {{ otechie }}
+{% endif %}
+{% if lfx_crowdfunding %}
+lfx_crowdfunding: {{ lfx_crowdfunding }}
+{% endif %}
+{% if custom_funding %}
+custom: {{ custom_funding }}
+{% endif %}

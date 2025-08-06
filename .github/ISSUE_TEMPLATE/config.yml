@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/yourusername/omni-dev-agent/discussions
+    about: Ask questions, share ideas, and discuss Omni-Dev Agent with the community
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/yourusername/omni-dev-agent/security/advisories/new
+    about: Privately report security vulnerabilities (recommended over public issues)
+  - name: 📚 Documentation
+    url: https://github.com/yourusername/omni-dev-agent/wiki
+    about: Browse our comprehensive documentation and guides
+  - name: 💡 Feature Ideas & Roadmap
+    url: https://github.com/yourusername/omni-dev-agent/discussions/categories/ideas
+    about: Share feature ideas and see what's on our roadmap
+  - name: 🆘 Community Support
+    url: https://github.com/yourusername/omni-dev-agent/discussions/categories/q-a
+    about: Get help from the community for usage questions

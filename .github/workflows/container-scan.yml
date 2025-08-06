@@ -1,0 +1,183 @@
+name: Container Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'Dockerfile*'
+      - '.dockerignore'
+      - '.github/workflows/container-scan.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Dockerfile*'
+      - '.dockerignore'
+      - '.github/workflows/container-scan.yml'
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM UTC
+  workflow_dispatch:
+
+jobs:
+  container-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Dockerfile exists
+      id: dockerfile-check
+      run: |
+        if [ -f "Dockerfile" ]; then
+          echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Set up Docker Buildx
+      if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image for scanning
+      if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
+      run: |
+        docker build -t local-scan-image:latest .
+        docker images
+
+    - name: Run Trivy filesystem scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+
+    - name: Run Trivy container scan
+      if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'local-scan-image:latest'
+        format: 'sarif'
+        output: 'trivy-container-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: '.'
+        category: 'trivy-container-scan'
+
+    - name: Generate container security report
+      if: always()
+      run: |
+        echo "# Container Security Scan Report 🛡️" > container-security-report.md
+        echo "" >> container-security-report.md
+        echo "## Scan Summary" >> container-security-report.md
+        echo "" >> container-security-report.md
+        
+        if [ -f "trivy-fs-results.sarif" ]; then
+          echo "✅ Filesystem scan completed" >> container-security-report.md
+        else
+          echo "❌ Filesystem scan failed" >> container-security-report.md
+        fi
+        
+        if [ -f "trivy-container-results.sarif" ]; then
+          echo "✅ Container image scan completed" >> container-security-report.md
+        else
+          echo "⚠️ Container image scan skipped (no Dockerfile)" >> container-security-report.md
+        fi
+        
+        echo "" >> container-security-report.md
+        echo "View detailed results in the [Security tab](https://github.com/${{ github.repository }}/security/code-scanning)" >> container-security-report.md
+
+    - name: Upload scan reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: container-security-reports
+        path: |
+          trivy-*.sarif
+          container-security-report.md
+        retention-days: 30
+
+    - name: Comment PR with security summary
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let report = 'Container security scan completed.';
+          try {
+            report = fs.readFileSync('container-security-report.md', 'utf8');
+          } catch (error) {
+            console.log('Could not read security report:', error.message);
+          }
+          
+          // Find existing security comment
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.data.find(
+            comment => comment.user.login === 'github-actions[bot]' && comment.body.includes('Container Security Scan Report')
+          );
+          
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: report
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: report
+            });
+          }
+
+  hadolint:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Dockerfile exists
+      id: dockerfile-check
+      run: |
+        if [ -f "Dockerfile" ]; then
+          echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run Hadolint
+      if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+        format: sarif
+        output-file: hadolint-results.sarif
+        no-color: true
+        verbose: true
+
+    - name: Upload Hadolint results
+      if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: hadolint-results.sarif
+        category: 'hadolint-dockerfile-lint'

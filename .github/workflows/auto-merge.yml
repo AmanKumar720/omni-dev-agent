@@ -1,0 +1,121 @@
+name: Auto-merge Dependabot Updates
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Check if this is a patch update from Dependabot
+  check-dependabot:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      is_patch: ${{ steps.check_update_type.outputs.is_patch }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 2
+      
+      - name: Check update type
+        id: check_update_type
+        run: |
+          # Get the PR title and extract version info
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+          
+          # Check if it's a patch update (x.y.z -> x.y.z+1)
+          if echo "$PR_TITLE" | grep -E 'Bump .* from [0-9]+\.[0-9]+\.[0-9]+ to [0-9]+\.[0-9]+\.[0-9]+$'; then
+            # Extract version numbers
+            FROM_VERSION=$(echo "$PR_TITLE" | sed -n 's/.*from \([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+            TO_VERSION=$(echo "$PR_TITLE" | sed -n 's/.*to \([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+            
+            FROM_MAJOR=$(echo $FROM_VERSION | cut -d. -f1)
+            FROM_MINOR=$(echo $FROM_VERSION | cut -d. -f2)
+            TO_MAJOR=$(echo $TO_VERSION | cut -d. -f1)
+            TO_MINOR=$(echo $TO_VERSION | cut -d. -f2)
+            
+            # Check if only patch version changed
+            if [ "$FROM_MAJOR" = "$TO_MAJOR" ] && [ "$FROM_MINOR" = "$TO_MINOR" ]; then
+              echo "is_patch=true" >> $GITHUB_OUTPUT
+              echo "This is a patch update - eligible for auto-merge"
+            else
+              echo "is_patch=false" >> $GITHUB_OUTPUT
+              echo "This is a major/minor update - requires manual review"
+            fi
+          else
+            echo "is_patch=false" >> $GITHUB_OUTPUT
+            echo "Cannot determine update type - requires manual review"
+          fi
+
+  # Wait for CI to pass before auto-merging
+  auto-merge:
+    needs: check-dependabot
+    if: |
+      needs.check-dependabot.outputs.is_patch == 'true' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Auto-merge patch updates
+        uses: pascalgn/merge-action@v0.15.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          merge_method: squash
+          merge_commit_message: |
+            ${{ github.event.pull_request.title }}
+            
+            Auto-merged by GitHub Actions after CI passed.
+            
+            Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+      
+      - name: Add comment to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🤖 Auto-merged this patch update after CI passed successfully! ✅'
+            })
+
+  # Notify about security updates immediately
+  security-notification:
+    if: |
+      github.actor == 'dependabot[bot]' &&
+      contains(github.event.pull_request.body, 'security')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Notify about security update
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚨 **SECURITY UPDATE DETECTED** 🚨\n\nThis update addresses security vulnerabilities. Please review and merge as soon as possible.\n\n@omni-dev-team @maintainers'
+            })
+            
+            // Also create a GitHub issue for tracking
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Security Update Required: ${context.payload.pull_request.title}`,
+              body: `A security update has been detected in PR #${context.issue.number}.\n\nPlease review and merge immediately.\n\nPR: ${context.payload.pull_request.html_url}`,
+              labels: ['security', 'high-priority', 'dependabot'],
+              assignees: ['@omni-dev-team']
+            })

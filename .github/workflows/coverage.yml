@@ -1,0 +1,246 @@
+name: Coverage Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.py'
+      - 'tests/**'
+      - '.github/workflows/coverage.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.py'
+      - 'tests/**'
+      - '.github/workflows/coverage.yml'
+  workflow_dispatch:
+
+env:
+  MIN_COVERAGE: 80
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+    - name: Setup Python Environment
+      uses: ./.github/actions/setup-python-env
+      with:
+        python-version: '3.11'
+        install-dev-deps: 'true'
+
+    - name: Create GitHub Check - Coverage Analysis
+      uses: actions/github-script@v7
+      id: create-check
+      with:
+        script: |
+          const check = await github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Coverage Analysis',
+            head_sha: context.sha,
+            status: 'in_progress',
+            started_at: new Date().toISOString(),
+          });
+          return check.data.id;
+
+    - name: Run tests with coverage
+      id: coverage
+      run: |
+        set -e
+        echo "Running tests with coverage analysis..."
+        
+        # Run pytest with coverage
+        pytest tests/ \
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --cov-report=json \
+          --junitxml=coverage-junit.xml \
+          --cov-fail-under=$MIN_COVERAGE || COVERAGE_FAILED=true
+        
+        # Extract coverage percentage
+        COVERAGE_PERCENT=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])")
+        echo "COVERAGE_PERCENT=$COVERAGE_PERCENT" >> $GITHUB_OUTPUT
+        
+        # Set coverage status
+        if (( $(echo "$COVERAGE_PERCENT < $MIN_COVERAGE" | bc -l) )); then
+          echo "COVERAGE_STATUS=failed" >> $GITHUB_OUTPUT
+          echo "Coverage $COVERAGE_PERCENT% is below minimum threshold $MIN_COVERAGE%"
+          exit 1
+        else
+          echo "COVERAGE_STATUS=passed" >> $GITHUB_OUTPUT
+          echo "Coverage $COVERAGE_PERCENT% meets minimum threshold $MIN_COVERAGE%"
+        fi
+
+    - name: Generate coverage summary
+      id: coverage-summary
+      if: always()
+      run: |
+        if [ -f "coverage.json" ]; then
+          python -c "
+        import json
+        import os
+        
+        with open('coverage.json') as f:
+            data = json.load(f)
+        
+        total = data['totals']
+        coverage_percent = total['percent_covered']
+        
+        summary = f'''## Coverage Report 📊
+        
+        **Overall Coverage: {coverage_percent:.1f}%**
+        
+        | Metric | Count | Percentage |
+        |--------|-------|------------|
+        | Statements | {total['num_statements']} | - |
+        | Missing | {total['missing_lines']} | - |
+        | Excluded | {total['excluded_lines']} | - |
+        | Branches | {total.get('num_branches', 0)} | - |
+        | Partial | {total.get('num_partial_branches', 0)} | - |
+        
+        **Status:** {'✅ PASSED' if coverage_percent >= int(os.environ['MIN_COVERAGE']) else '❌ FAILED'} (Minimum: {os.environ['MIN_COVERAGE']}%)
+        '''
+        
+        with open('coverage_summary.md', 'w') as f:
+            f.write(summary)
+        "
+        else
+          echo "No coverage data available" > coverage_summary.md
+        fi
+        
+        # Set outputs for GitHub Actions
+        echo "summary<<EOF" >> $GITHUB_OUTPUT
+        cat coverage_summary.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Update GitHub Check - Coverage Analysis
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        script: |
+          const checkId = '${{ steps.create-check.outputs.result }}';
+          const coverageStatus = '${{ steps.coverage.outputs.COVERAGE_STATUS }}';
+          const coveragePercent = '${{ steps.coverage.outputs.COVERAGE_PERCENT }}';
+          const summary = `${{ steps.coverage-summary.outputs.summary }}`;
+          
+          const conclusion = coverageStatus === 'passed' ? 'success' : 'failure';
+          const title = `Coverage: ${coveragePercent || 'N/A'}%`;
+          
+          await github.rest.checks.update({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            check_run_id: checkId,
+            status: 'completed',
+            conclusion: conclusion,
+            completed_at: new Date().toISOString(),
+            output: {
+              title: title,
+              summary: summary || 'Coverage analysis completed',
+              text: `Minimum coverage threshold: ${process.env.MIN_COVERAGE}%`
+            }
+          });
+
+    - name: Comment PR with coverage report
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const coveragePercent = '${{ steps.coverage.outputs.COVERAGE_PERCENT }}';
+          const minCoverage = process.env.MIN_COVERAGE;
+          
+          let summary = '';
+          try {
+            summary = fs.readFileSync('coverage_summary.md', 'utf8');
+          } catch (error) {
+            summary = 'Coverage report not available';
+          }
+          
+          const comment = `${summary}
+          
+          ---
+          📊 [View detailed coverage report](${context.payload.pull_request.html_url}/checks)
+          `;
+          
+          // Find existing coverage comment
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.data.find(
+            comment => comment.user.login === 'github-actions[bot]' && comment.body.includes('Coverage Report')
+          );
+          
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: comment
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+          }
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: omni-dev-agent-coverage
+        fail_ci_if_error: false
+        verbose: true
+
+    - name: Upload coverage artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-reports
+        path: |
+          coverage.xml
+          coverage.json
+          htmlcov/
+          coverage-junit.xml
+        retention-days: 30
+
+    - name: Coverage Badge
+      if: github.ref == 'refs/heads/main' && success()
+      uses: tj-actions/coverage-badge-py@v2
+      with:
+        output: coverage-badge.svg
+
+    - name: Verify Changed files
+      if: github.ref == 'refs/heads/main' && success()
+      uses: tj-actions/verify-changed-files@v17
+      id: verify-changed-files
+      with:
+        files: coverage-badge.svg
+
+    - name: Commit coverage badge
+      if: steps.verify-changed-files.outputs.files_changed == 'true' && github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add coverage-badge.svg
+        git commit -m "Update coverage badge [skip ci]"
+        git push

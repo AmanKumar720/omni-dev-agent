@@ -1,0 +1,66 @@
+repositories:
+  - name: "omni-dev-agent"
+    description: "Automated Development Agent with CI/CD, Testing, and Documentation"
+    private: false
+    visibility: "public"
+    topics:
+      - "automation"
+      - "ci-cd"
+      - "github-actions"
+      - "python"
+      - "testing"
+      - "documentation"
+    labels:
+      - name: "automation"
+        color: "1d76db"
+      - name: "ci-cd"
+        color: "0052cc"
+      - name: "security"
+        color: "d73a4a"
+      - name: "enhancement"
+        color: "a2eeef"
+      - name: "bug"
+        color: "d73a4a"
+      - name: "documentation"
+        color: "0075ca"
+    
+    # Secrets and Environment Configuration
+    secrets_and_environments:
+      # Repository-level secrets (available to all workflows)
+      repository_secrets:
+        CODECOV_TOKEN: "${CODECOV_TOKEN}"              # From environment variable
+        NPM_TOKEN: "${NPM_TOKEN}"                      # From environment variable
+        PYPI_API_TOKEN: "${PYPI_API_TOKEN}"           # From environment variable
+        SONAR_TOKEN: "${SONAR_TOKEN}"                 # From environment variable
+        SLACK_WEBHOOK_URL: "${SLACK_WEBHOOK_URL}"     # From environment variable
+        DOCKER_REGISTRY_TOKEN: "${DOCKER_REGISTRY_TOKEN}"
+        
+      # Protected environments with reviewers and secrets
+      environments:
+        # Production environment with strict controls
+        production:
+          reviewers:
+            - "AmanKumar720"              # GitHub username
+          wait_timer: 300                 # 5 minutes wait time
+          secrets:
+            PROD_DATABASE_URL: "${PROD_DATABASE_URL}"
+            PROD_API_KEY: "${PROD_API_KEY}"
+            PROD_DEPLOY_KEY: "${PROD_DEPLOY_KEY}"
+            
+        # Staging environment with less strict controls
+        staging:
+          reviewers:
+            - "AmanKumar720"
+          wait_timer: 60                  # 1 minute wait time
+          secrets:
+            STAGING_DATABASE_URL: "${STAGING_DATABASE_URL}"
+            STAGING_API_KEY: "${STAGING_API_KEY}"
+            
+        # Development environment with minimal controls
+        development:
+          reviewers: []                   # No reviewers required
+          wait_timer: 0                   # No wait time
+          secrets:
+            DEV_DATABASE_URL: "${DEV_DATABASE_URL}"
+            DEV_API_KEY: "${DEV_API_KEY}"
+            DEBUG_MODE: "true"

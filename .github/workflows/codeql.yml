@@ -1,0 +1,101 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.py'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.py'
+      - '.github/workflows/codeql.yml'
+  schedule:
+    - cron: '30 1 * * 0'  # Weekly on Sunday at 1:30 AM UTC
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+        # Additional languages can be added here if the project expands
+        # language: [ 'python', 'javascript' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Enhanced query suites for comprehensive analysis
+        queries: +security-and-quality,+security-extended,+security-experimental
+        # Custom queries can be added here
+        # config-file: ./.github/codeql/codeql-config.yml
+
+    - name: Setup Python Environment
+      if: matrix.language == 'python'
+      uses: ./.github/actions/setup-python-env
+      with:
+        python-version: '3.11'
+        install-dev-deps: 'false'
+
+    - name: Build for CodeQL (if needed)
+      if: matrix.language == 'python'
+      run: |
+        # Build any extensions or compiled components if needed
+        echo "Building Python project for CodeQL analysis"
+        python -m py_compile $(find src -name "*.py" 2>/dev/null || echo "")
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{ matrix.language }}"
+        upload: true
+        # Add SARIF upload for better integration
+        sarif-category: "/language:${{ matrix.language }}"
+
+    - name: Upload CodeQL results to security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: ../results/
+        category: "codeql-${{ matrix.language }}"
+
+  # Additional static analysis tools
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    
+    container:
+      image: returntocorp/semgrep
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Run Semgrep
+      run: |
+        semgrep --config=auto --json --output=semgrep-results.json src/ || true
+    
+    - name: Upload Semgrep results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: semgrep-results
+        path: semgrep-results.json

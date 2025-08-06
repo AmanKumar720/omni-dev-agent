@@ -1,0 +1,40 @@
+providers:
+  aws:
+    services:
+    - cost_per_unit: 0.0116
+      description: t2.micro instances
+      free_tier_limit: 750 hours/month
+      limit_unit: hours
+      limit_value: 750
+      name: ec2
+      time_period: monthly
+    - cost_per_unit: 2.0e-07
+      description: Function invocations
+      free_tier_limit: 1M requests/month
+      limit_unit: requests
+      limit_value: 1000000
+      name: lambda
+      time_period: monthly
+    - cost_per_unit: 0.023
+      description: Standard storage
+      free_tier_limit: 5GB storage
+      limit_unit: GB
+      limit_value: 5
+      name: s3
+      time_period: monthly
+  supabase:
+    services:
+    - cost_per_unit: 25.0
+      description: PostgreSQL database
+      free_tier_limit: 500MB database
+      limit_unit: GB
+      limit_value: 0.5
+      name: database
+      time_period: monthly
+    - cost_per_unit: 0.0001
+      description: User authentication
+      free_tier_limit: 50,000 users
+      limit_unit: users
+      limit_value: 50000
+      name: auth
+      time_period: monthly

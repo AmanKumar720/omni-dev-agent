@@ -1,0 +1,46 @@
+{
+  "aws": {
+    "name": "Amazon Web Services",
+    "provider": "Amazon",
+    "description": "Comprehensive cloud computing platform",
+    "website_url": "https://aws.amazon.com",
+    "pricing_url": "https://aws.amazon.com/pricing/",
+    "documentation_url": "https://docs.aws.amazon.com/",
+    "api_documentation_url": null,
+    "free_tier_available": true,
+    "free_tier_details": "12 months free tier with 40+ services"
+  },
+  "supabase": {
+    "name": "Supabase",
+    "provider": "Supabase",
+    "description": "Open source Firebase alternative",
+    "website_url": "https://supabase.com",
+    "pricing_url": "https://supabase.com/pricing",
+    "documentation_url": "https://supabase.com/docs",
+    "api_documentation_url": null,
+    "free_tier_available": true,
+    "free_tier_details": "Free tier with 500MB database, 50K users"
+  },
+  "vercel": {
+    "name": "Vercel",
+    "provider": "Vercel",
+    "description": "Platform for static sites and serverless functions",
+    "website_url": "https://vercel.com",
+    "pricing_url": "https://vercel.com/pricing",
+    "documentation_url": "https://vercel.com/docs",
+    "api_documentation_url": null,
+    "free_tier_available": true,
+    "free_tier_details": "Free tier with 100GB bandwidth, serverless functions"
+  },
+  "netlify": {
+    "name": "Netlify",
+    "provider": "Netlify",
+    "description": "Web developer platform for static sites",
+    "website_url": "https://netlify.com",
+    "pricing_url": "https://netlify.com/pricing",
+    "documentation_url": "https://docs.netlify.com",
+    "api_documentation_url": null,
+    "free_tier_available": true,
+    "free_tier_details": "Free tier with 100GB bandwidth, form submissions"
+  }
+}

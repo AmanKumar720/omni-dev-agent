@@ -1,0 +1,10 @@
+alert_threshold: 80.0
+auto_optimization: true
+budget_limit: 0.0
+monitoring_enabled: true
+preferred_providers:
+- aws
+- supabase
+- vercel
+- netlify
+project_name: omni-dev-agent

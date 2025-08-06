@@ -1,0 +1,93 @@
+name: 'Security Scan'
+description: 'Run security scans with Bandit and Safety'
+inputs:
+  source-path:
+    description: 'Path to source code to scan'
+    required: false
+    default: 'src'
+  upload-artifacts:
+    description: 'Whether to upload scan results as artifacts'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install security tools
+      shell: bash
+      run: |
+        pip install bandit[toml] safety
+
+    - name: Run Bandit security scan
+      shell: bash
+      run: |
+        echo "🔍 Running Bandit security scan..."
+        bandit -r ${{ inputs.source-path }} \
+          -f json -o bandit-report.json \
+          -f txt -o bandit-report.txt \
+          --confidence-level medium \
+          --severity-level medium || true
+
+    - name: Run Safety dependency scan
+      shell: bash
+      run: |
+        echo "🛡️ Running Safety dependency scan..."
+        safety check \
+          --json --output safety-report.json \
+          --continue-on-error || true
+        safety check \
+          --output safety-report.txt \
+          --continue-on-error || true
+
+    - name: Generate security summary
+      shell: bash
+      run: |
+        echo "📋 Generating security summary..."
+        python -c "
+        import json
+        import os
+        
+        summary = '## Security Scan Results 🔒\n\n'
+        
+        # Bandit results
+        try:
+            with open('bandit-report.json') as f:
+                bandit_data = json.load(f)
+            
+            high_issues = len([r for r in bandit_data.get('results', []) if r.get('issue_severity') == 'HIGH'])
+            medium_issues = len([r for r in bandit_data.get('results', []) if r.get('issue_severity') == 'MEDIUM'])
+            
+            summary += f'### Bandit Static Analysis\n'
+            summary += f'- 🔴 High Severity Issues: {high_issues}\n'
+            summary += f'- 🟡 Medium Severity Issues: {medium_issues}\n\n'
+            
+        except Exception as e:
+            summary += f'### Bandit Static Analysis\n- ❌ Scan failed: {str(e)}\n\n'
+        
+        # Safety results
+        try:
+            with open('safety-report.json') as f:
+                safety_data = json.load(f)
+            
+            vulnerabilities = len(safety_data) if isinstance(safety_data, list) else 0
+            summary += f'### Safety Dependency Scan\n'
+            summary += f'- 🔓 Known Vulnerabilities: {vulnerabilities}\n\n'
+            
+        except Exception as e:
+            summary += f'### Safety Dependency Scan\n- ❌ Scan failed: {str(e)}\n\n'
+        
+        with open('security-summary.md', 'w') as f:
+            f.write(summary)
+        "
+
+    - name: Upload security reports
+      if: inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          bandit-report.txt
+          safety-report.json
+          safety-report.txt
+          security-summary.md

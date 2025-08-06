@@ -1,0 +1,216 @@
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python Environment
+      uses: ./.github/actions/setup-python-env
+      with:
+        python-version: '3.11'
+        install-dev-deps: 'true'
+    
+    - name: Run tests
+      run: pytest tests/ --cov=src --cov-report=xml
+
+  semantic-release:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.semantic.outputs.released }}
+      version: ${{ steps.semantic.outputs.version }}
+      tag: ${{ steps.semantic.outputs.tag }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install semantic-release
+      run: |
+        npm install -g semantic-release \
+          @semantic-release/commit-analyzer \
+          @semantic-release/release-notes-generator \
+          @semantic-release/changelog \
+          @semantic-release/exec \
+          @semantic-release/git \
+          @semantic-release/github
+
+    - name: Create semantic-release config
+      run: |
+        cat > .releaserc.json << 'EOF'
+        {
+          "branches": ["main"],
+          "plugins": [
+            "@semantic-release/commit-analyzer",
+            "@semantic-release/release-notes-generator",
+            [
+              "@semantic-release/changelog",
+              {
+                "changelogFile": "CHANGELOG.md"
+              }
+            ],
+            [
+              "@semantic-release/exec",
+              {
+                "prepareCmd": "sed -i 's/version = \".*\"/version = \"${nextRelease.version}\"/g' pyproject.toml"
+              }
+            ],
+            [
+              "@semantic-release/git",
+              {
+                "assets": ["pyproject.toml", "CHANGELOG.md"],
+                "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+              }
+            ],
+            "@semantic-release/github"
+          ]
+        }
+        EOF
+
+    - name: Run semantic-release
+      id: semantic
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        semantic-release --dry-run > semantic-output.txt 2>&1 || true
+        if semantic-release; then
+          echo "released=true" >> $GITHUB_OUTPUT
+          # Extract version from git tags
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "released=false" >> $GITHUB_OUTPUT
+          echo "version=" >> $GITHUB_OUTPUT
+          echo "tag=" >> $GITHUB_OUTPUT
+        fi
+
+  build-and-publish:
+    needs: semantic-release
+    if: needs.semantic-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.semantic-release.outputs.tag }}
+
+    - name: Setup Python Environment
+      uses: ./.github/actions/setup-python-env
+      with:
+        python-version: '3.11'
+        install-dev-deps: 'false'
+
+    - name: Install build dependencies
+      run: pip install build twine
+
+    - name: Build Python package
+      run: python -m build
+
+    - name: Check package
+      run: twine check dist/*
+
+    - name: Publish to PyPI
+      if: github.ref == 'refs/heads/main'
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        skip_existing: true
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+        retention-days: 90
+
+  build-docker:
+    needs: semantic-release
+    if: needs.semantic-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.semantic-release.outputs.tag }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+
+    - name: Build and push Docker image
+      if: hashFiles('Dockerfile') != ''
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  notify:
+    needs: [semantic-release, build-and-publish, build-docker]
+    if: always() && needs.semantic-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Notify successful release
+      run: |
+        echo "🎉 Successfully released version ${{ needs.semantic-release.outputs.version }}"
+        echo "📦 Package published to PyPI"
+        echo "🐳 Docker image pushed to GHCR"
+        echo "📋 Release notes available at: https://github.com/${{ github.repository }}/releases/tag/${{ needs.semantic-release.outputs.tag }}"
+    
