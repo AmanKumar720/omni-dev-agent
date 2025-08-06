@@ -98,7 +98,7 @@ jobs:
         EOF
 
     - name: Upload workflow report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: workflow-health-report
         path: workflow-report.md
