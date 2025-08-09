@@ -29,6 +29,25 @@ COMPONENT_REGISTRY = {
         "dependencies": [],
         "documentation_url": "https://flask.palletsprojects.com/",
     },
+    "AIVision": {
+        "description": "AI Vision component for computer vision and image processing tasks.",
+        "version": "1.0.0",
+        "capabilities": [
+            "object_detection",
+            "image_classification",
+            "semantic_segmentation", 
+            "ocr",
+            "face_recognition",
+            "image_enhancement",
+            "video_processing",
+            "pipeline_processing"
+        ],
+        "dependencies": ["opencv-python", "pillow", "numpy"],
+        "documentation_url": "https://docs.opencv.org/",
+        "component_path": "src.components.ai_vision",
+        "main_class": "AIVisionAgent",
+        "hot_pluggable": True
+    },
     # Add more components as needed
 }
 

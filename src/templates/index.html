@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni-Dev Agent Vision Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-eye me-2"></i>
+                Omni-Dev Vision Interface
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="connectionStatus">
+                    <i class="fas fa-circle text-danger"></i> Disconnected
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- Control Panel -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cogs me-2"></i>Control Panel</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Processing Mode Selection -->
+                        <div class="mb-3">
+                            <label class="form-label">Processing Mode</label>
+                            <div class="btn-group d-grid" role="group">
+                                <input type="radio" class="btn-check" name="mode" id="liveMode" value="live" checked>
+                                <label class="btn btn-outline-primary" for="liveMode">
+                                    <i class="fas fa-video me-2"></i>Live Camera
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="mode" id="uploadMode" value="upload">
+                                <label class="btn btn-outline-primary" for="uploadMode">
+                                    <i class="fas fa-upload me-2"></i>Upload Image
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- File Upload Section -->
+                        <div id="uploadSection" style="display: none;">
+                            <div class="mb-3">
+                                <label for="imageUpload" class="form-label">Select Image</label>
+                                <input class="form-control" type="file" id="imageUpload" accept="image/*">
+                            </div>
+                            <button class="btn btn-success w-100 mb-3" id="processUpload">
+                                <i class="fas fa-play me-2"></i>Process Image
+                            </button>
+                        </div>
+
+                        <!-- Camera Controls -->
+                        <div id="cameraSection">
+                            <div class="mb-3">
+                                <label class="form-label">Camera Selection</label>
+                                <select class="form-select" id="cameraSelect">
+                                    <option value="0">Default Camera</option>
+                                </select>
+                            </div>
+                            <div class="d-grid gap-2 mb-3">
+                                <button class="btn btn-success" id="startStream">
+                                    <i class="fas fa-play me-2"></i>Start Stream
+                                </button>
+                                <button class="btn btn-danger" id="stopStream" disabled>
+                                    <i class="fas fa-stop me-2"></i>Stop Stream
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Vision Processing Options -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6>Vision Processing</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="enableDetection" checked>
+                                    <label class="form-check-label" for="enableDetection">
+                                        Object Detection
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="enableFaceRecognition" checked>
+                                    <label class="form-check-label" for="enableFaceRecognition">
+                                        Face Recognition
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="enableOCR">
+                                    <label class="form-check-label" for="enableOCR">
+                                        OCR Text Extraction
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="enableClassification">
+                                    <label class="form-check-label" for="enableClassification">
+                                        Image Classification
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Threshold Controls -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Threshold Settings</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="confidenceThreshold" class="form-label">
+                                        Detection Confidence: <span id="confidenceValue">0.50</span>
+                                    </label>
+                                    <input type="range" class="form-range" id="confidenceThreshold" 
+                                           min="0.1" max="0.9" step="0.05" value="0.50">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="faceThreshold" class="form-label">
+                                        Face Recognition: <span id="faceValue">0.70</span>
+                                    </label>
+                                    <input type="range" class="form-range" id="faceThreshold" 
+                                           min="0.3" max="0.9" step="0.05" value="0.70">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="ocrConfidence" class="form-label">
+                                        OCR Confidence: <span id="ocrValue">0.60</span>
+                                    </label>
+                                    <input type="range" class="form-range" id="ocrConfidence" 
+                                           min="0.1" max="0.9" step="0.05" value="0.60">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="topK" class="form-label">
+                                        Classification Top-K: <span id="topKValue">5</span>
+                                    </label>
+                                    <input type="range" class="form-range" id="topK" 
+                                           min="1" max="10" step="1" value="5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Display Area -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-camera me-2"></i>Vision Display</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" id="saveSnapshot">
+                                <i class="fas fa-camera me-1"></i>Save
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="fullscreenToggle">
+                                <i class="fas fa-expand me-1"></i>Fullscreen
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="displayContainer" class="position-relative">
+                            <canvas id="visionCanvas" class="w-100 h-100"></canvas>
+                            <div id="loadingOverlay" class="position-absolute top-50 start-50 translate-middle">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="mt-2 text-center">Initializing...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col">
+                                <small class="text-muted">
+                                    FPS: <span id="fpsCounter">0</span>
+                                </small>
+                            </div>
+                            <div class="col text-center">
+                                <small class="text-muted">
+                                    Resolution: <span id="resolution">-</span>
+                                </small>
+                            </div>
+                            <div class="col text-end">
+                                <small class="text-muted">
+                                    Status: <span id="processingStatus">Ready</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Panel -->
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="analysisTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="detections-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#detections" type="button" role="tab">
+                                    <i class="fas fa-search me-1"></i>Objects
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="faces-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#faces" type="button" role="tab">
+                                    <i class="fas fa-user me-1"></i>Faces
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="ocr-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#ocr" type="button" role="tab">
+                                    <i class="fas fa-font me-1"></i>Text
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="analysisTabContent">
+                            <!-- Object Detection Results -->
+                            <div class="tab-pane fade show active" id="detections" role="tabpanel">
+                                <div id="detectionsList">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-search fa-2x mb-2"></i>
+                                        <p>No objects detected yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Face Recognition Results -->
+                            <div class="tab-pane fade" id="faces" role="tabpanel">
+                                <div id="facesList">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-user fa-2x mb-2"></i>
+                                        <p>No faces detected yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- OCR Results -->
+                            <div class="tab-pane fade" id="ocr" role="tabpanel">
+                                <div id="ocrResults">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-font fa-2x mb-2"></i>
+                                        <p>No text detected yet</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label for="ocrLanguage" class="form-label">Language</label>
+                                    <select class="form-select form-select-sm" id="ocrLanguage">
+                                        <option value="eng">English</option>
+                                        <option value="spa">Spanish</option>
+                                        <option value="fra">French</option>
+                                        <option value="deu">German</option>
+                                        <option value="chi_sim">Chinese (Simplified)</option>
+                                        <option value="ara">Arabic</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="fas fa-chart-bar me-2"></i>Processing Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h4 text-primary" id="totalObjects">0</div>
+                                    <small class="text-muted">Total Objects</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h4 text-success" id="totalFaces">0</div>
+                                    <small class="text-muted">Total Faces</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h4 text-info" id="textBlocks">0</div>
+                                    <small class="text-muted">Text Blocks</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h4 text-warning" id="avgProcessingTime">0ms</div>
+                                    <small class="text-muted">Avg Processing</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals and Toast Container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toastContainer"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/vision-interface.js') }}"></script>
+</body>
+</html>

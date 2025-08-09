@@ -1,0 +1,32 @@
+# YOLOv8 Object Detection Module Dependencies
+# Install with: pip install -r requirements_object_detection.txt
+
+# Core YOLOv8 and PyTorch dependencies
+ultralytics>=8.0.0
+torch>=1.8.0
+torchvision>=0.9.0
+
+# Computer Vision dependencies
+opencv-python>=4.5.0
+Pillow>=8.0.0
+
+# Numerical computing
+numpy>=1.21.0
+
+# Async and HTTP support (for model downloads)
+aiohttp>=3.8.0
+aiofiles>=0.8.0
+
+# Optional GPU support (uncomment if using CUDA)
+# torch-audio  # For audio processing if needed
+# torchtext    # For text processing if needed
+
+# Development and testing dependencies (optional)
+# pytest>=6.0.0
+# pytest-asyncio>=0.18.0
+# matplotlib>=3.5.0  # For visualization
+
+# Additional model format support (optional)
+# onnx>=1.12.0
+# onnxruntime>=1.12.0
+# tensorrt>=8.0.0  # NVIDIA TensorRT for optimized inference

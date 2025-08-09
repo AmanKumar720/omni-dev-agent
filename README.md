@@ -1,20 +1,25 @@
 # 🤖 Omni-Dev Agent
 
-An intelligent development agent for automated component management, integration, and continuous learning in software projects.
+**A comprehensive AI-powered development and vision analytics platform**
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+Omni-Dev Agent combines intelligent development assistance with advanced computer vision capabilities, providing automated component management, real-time vision analytics, camera integration, and continuous learning.
+
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-sphinx-blue.svg)](docs/)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](#testing)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## 🚀 Overview
 
-Omni-Dev Agent is a comprehensive AI-powered development assistant that helps developers:
-- **Automate component integration** with intelligent analysis
-- **Learn from experience** to improve over time
-- **Ensure code quality** through comprehensive testing strategies
-- **Handle errors gracefully** with robust recovery mechanisms
-- **Maintain security** throughout the development process
+Omni-Dev Agent is a comprehensive AI-powered platform that provides:
+- **🔍 Advanced Computer Vision**: Object detection, OCR, face recognition, and image classification
+- **📹 Camera Integration**: Real-time streaming and PTZ control for CP Plus cameras
+- **⚡ Performance Optimization**: System monitoring and resource optimization
+- **🧠 Intelligent Development**: Automated component management and integration
+- **🌐 Web Interface**: RESTful API and real-time WebSocket streaming
+- **📊 Analytics Dashboard**: Real-time monitoring and performance analytics
+- **🎯 Continuous Learning**: Experience-based improvement and adaptation
 
 ## ✨ Key Features
 
@@ -60,6 +65,29 @@ Omni-Dev Agent is a comprehensive AI-powered development assistant that helps de
 - Intelligent test selection and prioritization
 - Rollback mechanisms for failed integrations
 - Feedback loops for continuous improvement
+
+### 🔍 AI Vision Capabilities
+- **Object Detection**: YOLOv8-based real-time object detection with confidence scoring
+- **OCR (Optical Character Recognition)**: Multi-language text extraction from images
+- **Face Recognition**: Advanced face detection and identification
+- **Image Classification**: Deep learning-based image categorization with top-k predictions
+- **Computer Vision Analytics**: Motion detection, scene segmentation, and visual reasoning
+- **Real-time Streaming**: WebSocket-based live video processing
+
+### 📹 Camera Integration
+- **CP Plus Camera Support**: Direct integration with CP Plus PTZ cameras
+- **Multi-camera Management**: Centralized camera discovery and configuration
+- **PTZ Controls**: Pan, tilt, zoom, and privacy mode controls
+- **Motion Detection**: Smart motion detection with customizable sensitivity
+- **Live Streaming**: Real-time video streaming with AI analysis overlay
+- **Privacy Scheduling**: Automated privacy mode scheduling
+
+### ⚡ Performance Optimization
+- **System Monitoring**: Real-time resource usage tracking
+- **Performance Benchmarking**: Comprehensive performance analysis tools
+- **Resource Optimization**: Automatic memory and CPU optimization
+- **GPU Acceleration**: CUDA support for enhanced performance
+- **Caching Strategies**: Intelligent model and data caching
 
 ## 🏗️ Architecture
 
@@ -143,6 +171,97 @@ learning_engine.record_experience(
     success=True,
     feedback_score=0.9
 )
+```
+
+### Vision API Usage
+
+#### Start the Vision Server
+```bash
+cd src
+python main.py
+# Server starts at http://localhost:5000
+```
+
+#### Object Detection API
+```python
+import requests
+import base64
+
+# Load and encode image
+with open('image.jpg', 'rb') as f:
+    image_data = base64.b64encode(f.read()).decode()
+
+# Object detection request
+response = requests.post(
+    'http://localhost:5000/vision/detect',
+    json={
+        'image': f'data:image/jpeg;base64,{image_data}',
+        'confidence': 0.25
+    }
+)
+
+result = response.json()
+print(f"Found {result['count']} objects:")
+for detection in result['detections']:
+    print(f"  {detection['class_name']}: {detection['confidence']:.3f}")
+```
+
+#### OCR Text Extraction
+```python
+response = requests.post(
+    'http://localhost:5000/vision/ocr',
+    json={
+        'image': f'data:image/jpeg;base64,{image_data}',
+        'language': 'eng'
+    }
+)
+
+result = response.json()
+print(f"Extracted text: {result['text']}")
+print(f"Confidence: {result['confidence']:.3f}")
+```
+
+#### Camera Integration
+```python
+# Discover cameras on network
+response = requests.get('http://localhost:5000/camera/discover')
+cameras = response.json()['cameras_found']
+
+# Add a camera
+camera_config = {
+    'camera_id': 'cam_001',
+    'name': 'Front Door Camera',
+    'credentials': {
+        'username': 'admin',
+        'password': 'password',
+        'ip_address': '192.168.1.100',
+        'port': 80,
+        'rtsp_port': 554
+    },
+    'capabilities': {
+        'has_360_view': True,
+        'has_motion_detection': True,
+        'has_ptz': True
+    }
+}
+
+response = requests.post(
+    'http://localhost:5000/camera/add',
+    json=camera_config
+)
+
+# Control camera (Pan/Tilt/Zoom)
+response = requests.post(
+    'http://localhost:5000/camera/cam_001/control',
+    json={
+        'action': 'pan_right',
+        'speed': 50
+    }
+)
+
+# Get camera status
+response = requests.get('http://localhost:5000/camera/cam_001/status')
+status = response.json()
 ```
 
 ## 📖 Documentation

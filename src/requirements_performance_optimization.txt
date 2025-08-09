@@ -1,0 +1,63 @@
+# Performance Optimization Requirements
+# GPU acceleration with CUDA, auto-fallback to CPU, half-precision inference,
+# batch aggregation, and asynchronous queue for video frames
+
+# Core PyTorch and vision libraries
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# CUDA support (install CUDA-compatible versions)
+# For CUDA 11.8: torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# For CUDA 12.1: torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Computer vision
+opencv-python>=4.8.0
+opencv-contrib-python>=4.8.0
+Pillow>=9.5.0
+
+# Async processing and performance monitoring
+asyncio-throttle>=1.0.2
+aiofiles>=23.1.0
+
+# System monitoring and GPU utilities
+psutil>=5.9.0
+GPUtil>=1.4.0
+nvidia-ml-py>=12.535.77
+
+# Numerical computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Data handling
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Optional high-performance optimizations
+# TensorRT (NVIDIA only)
+# torch-tensorrt>=1.4.0
+
+# ONNX Runtime for cross-platform optimization
+onnxruntime>=1.15.0
+onnxruntime-gpu>=1.15.0  # GPU version
+
+# Additional ML frameworks for model optimization
+transformers>=4.30.0
+ultralytics>=8.0.0  # YOLOv8 support
+
+# Development and testing
+pytest>=7.3.0
+pytest-asyncio>=0.21.0
+pytest-benchmark>=4.0.0
+
+# Logging and configuration
+pyyaml>=6.0
+colorama>=0.4.6
+
+# Memory profiling and debugging
+memory-profiler>=0.60.0
+line-profiler>=4.0.0
+
+# Optional: Apple Silicon (M1/M2) optimizations
+# torch-metal>=0.1.0  # Uncomment for Apple Silicon GPU support

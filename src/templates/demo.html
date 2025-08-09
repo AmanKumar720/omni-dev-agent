@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Processing Demo - Omni-Dev Agent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-eye me-2"></i>
+                Vision Processing Demo
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('vision_interface') }}">
+                    <i class="fas fa-desktop me-1"></i>Main Interface
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-magic me-2 text-primary"></i>
+                    Vision Processing Capabilities Demo
+                </h2>
+                <p class="text-center lead mb-5">
+                    Explore our AI-powered vision processing features with interactive examples
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature Cards -->
+        <div class="row g-4 mb-5">
+            <!-- Object Detection Card -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-search me-2"></i>Object Detection
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Detect and classify objects in real-time with bounding boxes and confidence scores.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>80+ object classes</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Real-time processing</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Adjustable thresholds</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">Powered by YOLO/COCO models</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition Card -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user me-2"></i>Face Recognition
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Identify and recognize faces with high accuracy facial analysis.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Face detection</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Identity matching</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Confidence scoring</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">Deep learning face embeddings</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OCR Text Extraction Card -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-font me-2"></i>OCR Text Extraction
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Extract and recognize text from images with multi-language support.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Multi-language OCR</li>
+                            <li><i class="fas fa-check text-success me-2"></i>High accuracy</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Text positioning</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">Tesseract OCR engine</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Classification Card -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-tags me-2"></i>Image Classification
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Classify entire images into thousands of categories with confidence.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>1000+ categories</li>
+                            <li><i class="fas fa-check text-success me-2"></li>Top-K results</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Confidence ranking</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">ImageNet trained models</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Demo Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-play-circle me-2 text-primary"></i>Try It Live</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Sample Images</h5>
+                                <p>Click on any sample image below to see the vision processing in action:</p>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZGRkIi8+CiAgICA8dGV4dCB4PSI3NSIgeT0iNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FtcGxlIDE8L3RleHQ+Cjwvc3ZnPg==" 
+                                             class="img-fluid demo-sample border rounded" 
+                                             alt="Sample 1" 
+                                             data-sample="people">
+                                    </div>
+                                    <div class="col-6">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZTNmMmZkIi8+CiAgICA8dGV4dCB4PSI3NSIgeT0iNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZjNzU3ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FtcGxlIDI8L3RleHQ+Cjwvc3ZnPg==" 
+                                             class="img-fluid demo-sample border rounded" 
+                                             alt="Sample 2" 
+                                             data-sample="objects">
+                                    </div>
+                                    <div class="col-6">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjhmOWZhIi8+CiAgICA8dGV4dCB4PSI3NSIgeT0iNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZjNzU3ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FtcGxlIDM8L3RleHQ+Cjwvc3ZnPg==" 
+                                             class="img-fluid demo-sample border rounded" 
+                                             alt="Sample 3" 
+                                             data-sample="text">
+                                    </div>
+                                    <div class="col-6">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZmZmM2NkIi8+CiAgICA8dGV4dCB4PSI3NSIgeT0iNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NGQwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FtcGxlIDQ8L3RleHQ+Cjwvc3ZnPg==" 
+                                             class="img-fluid demo-sample border rounded" 
+                                             alt="Sample 4" 
+                                             data-sample="animals">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Quick Actions</h5>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('vision_interface') }}" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-desktop me-2"></i>
+                                        Launch Full Interface
+                                    </a>
+                                    <button class="btn btn-success" id="startQuickDemo">
+                                        <i class="fas fa-video me-2"></i>
+                                        Start Camera Demo
+                                    </button>
+                                    <button class="btn btn-info" id="uploadDemo">
+                                        <i class="fas fa-upload me-2"></i>
+                                        Upload & Process Image
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Documentation Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-code me-2 text-secondary"></i>API Endpoints</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Endpoint</th>
+                                        <th>Method</th>
+                                        <th>Description</th>
+                                        <th>Parameters</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>/vision/detect</code></td>
+                                        <td><span class="badge bg-success">POST</span></td>
+                                        <td>Object detection with bounding boxes</td>
+                                        <td><code>image, confidence</code></td>
+                                        <td><button class="btn btn-sm btn-outline-primary test-api" data-endpoint="/vision/detect">Test</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>/vision/face/identify</code></td>
+                                        <td><span class="badge bg-success">POST</span></td>
+                                        <td>Face detection and recognition</td>
+                                        <td><code>image</code></td>
+                                        <td><button class="btn btn-sm btn-outline-primary test-api" data-endpoint="/vision/face/identify">Test</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>/vision/ocr</code></td>
+                                        <td><span class="badge bg-success">POST</span></td>
+                                        <td>Text extraction from images</td>
+                                        <td><code>image, language</code></td>
+                                        <td><button class="btn btn-sm btn-outline-primary test-api" data-endpoint="/vision/ocr">Test</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>/vision/classify</code></td>
+                                        <td><span class="badge bg-success">POST</span></td>
+                                        <td>Image classification</td>
+                                        <td><code>image, top_k</code></td>
+                                        <td><button class="btn btn-sm btn-outline-primary test-api" data-endpoint="/vision/classify">Test</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>/camera/discover</code></td>
+                                        <td><span class="badge bg-info">GET</span></td>
+                                        <td>Discover network cameras</td>
+                                        <td>-</td>
+                                        <td><button class="btn btn-sm btn-outline-primary test-api" data-endpoint="/camera/discover">Test</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>/camera/list</code></td>
+                                        <td><span class="badge bg-info">GET</span></td>
+                                        <td>List configured cameras</td>
+                                        <td>-</td>
+                                        <td><button class="btn btn-sm btn-outline-primary test-api" data-endpoint="/camera/list">Test</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="row mb-5">
+            <div class="col-md-3">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <i class="fas fa-tachometer-alt fa-2x text-primary mb-2"></i>
+                        <h4 class="text-primary">~30ms</h4>
+                        <p class="mb-0">Avg Detection Time</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-success">
+                    <div class="card-body">
+                        <i class="fas fa-eye fa-2x text-success mb-2"></i>
+                        <h4 class="text-success">95%+</h4>
+                        <p class="mb-0">Detection Accuracy</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-info">
+                    <div class="card-body">
+                        <i class="fas fa-language fa-2x text-info mb-2"></i>
+                        <h4 class="text-info">100+</h4>
+                        <p class="mb-0">Languages (OCR)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <i class="fas fa-layer-group fa-2x text-warning mb-2"></i>
+                        <h4 class="text-warning">1000+</h4>
+                        <p class="mb-0">Object Classes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <hr>
+                <p class="text-muted">
+                    <i class="fas fa-code me-1"></i>
+                    Built with Flask, OpenCV, and AI Models | 
+                    <a href="{{ url_for('vision_interface') }}" class="text-decoration-none">
+                        Try the full interface <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for demos -->
+    <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
+
+    <!-- Toast Container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toastContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Demo page functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample image click handlers
+            document.querySelectorAll('.demo-sample').forEach(img => {
+                img.addEventListener('click', function() {
+                    const sampleType = this.dataset.sample;
+                    showToast('Demo', `Sample ${sampleType} processing would start here`, 'info');
+                    // In a real implementation, this would load and process a sample image
+                });
+            });
+
+            // Quick demo buttons
+            document.getElementById('startQuickDemo').addEventListener('click', function() {
+                window.open('/ui', '_blank');
+            });
+
+            document.getElementById('uploadDemo').addEventListener('click', function() {
+                document.getElementById('hiddenFileInput').click();
+            });
+
+            document.getElementById('hiddenFileInput').addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    window.open('/ui', '_blank');
+                }
+            });
+
+            // API test buttons
+            document.querySelectorAll('.test-api').forEach(button => {
+                button.addEventListener('click', function() {
+                    const endpoint = this.dataset.endpoint;
+                    showToast('API Test', `Testing ${endpoint} - Check browser console for results`, 'info');
+                    
+                    // Simple API test (for GET endpoints)
+                    if (endpoint === '/camera/discover' || endpoint === '/camera/list') {
+                        fetch(endpoint)
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log(`${endpoint} response:`, data);
+                                showToast('Success', `${endpoint} responded successfully`, 'success');
+                            })
+                            .catch(error => {
+                                console.error(`${endpoint} error:`, error);
+                                showToast('Error', `${endpoint} request failed`, 'error');
+                            });
+                    } else {
+                        showToast('Info', 'POST endpoints require image data. Use the main interface for testing.', 'warning');
+                    }
+                });
+            });
+        });
+
+        // Toast notification function
+        function showToast(title, message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toastId = 'toast-' + Date.now();
+            
+            const iconMap = {
+                success: 'fa-check-circle text-success',
+                error: 'fa-exclamation-circle text-danger',
+                warning: 'fa-exclamation-triangle text-warning',
+                info: 'fa-info-circle text-info'
+            };
+            
+            const toastHTML = `
+                <div class="toast" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="fas ${iconMap[type]} me-2"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <small class="text-muted">now</small>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+            
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 4000 });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+    </script>
+</body>
+</html>

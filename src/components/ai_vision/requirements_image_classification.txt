@@ -1,0 +1,27 @@
+# Image Classification Module Dependencies
+# Install with: pip install -r requirements_image_classification.txt
+
+# Core PyTorch and TorchVision dependencies
+torch>=1.8.0
+torchvision>=0.9.0
+
+# Image processing dependencies
+Pillow>=8.0.0
+numpy>=1.21.0
+
+# Async support (for model downloads)
+aiohttp>=3.8.0
+aiofiles>=0.8.0
+
+# Optional GPU support (uncomment if using CUDA)
+# torchaudio  # For audio processing if needed in future extensions
+
+# Development and testing dependencies (optional)
+# pytest>=6.0.0
+# pytest-asyncio>=0.18.0
+# matplotlib>=3.5.0  # For visualization of results
+
+# Additional model format support (optional)
+# onnx>=1.12.0
+# onnxruntime>=1.12.0
+# tensorrt>=8.0.0  # NVIDIA TensorRT for optimized inference

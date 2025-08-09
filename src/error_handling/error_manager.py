@@ -6,6 +6,7 @@ Provides comprehensive error management, logging, and recovery mechanisms.
 import logging
 import traceback
 import functools
+import time
 from typing import Any, Optional, Callable, Dict, List
 from enum import Enum
 from dataclasses import dataclass
@@ -94,6 +95,14 @@ class ErrorManager:
 
         return error_context
 
+    def capture(self, error: Exception, context: Dict[str, Any] = None) -> ErrorContext:
+        """Capture and handle an error with context information."""
+        component = context.get('component', 'Unknown') if context else 'Unknown'
+        operation = context.get('operation', 'Unknown') if context else 'Unknown'
+        severity = context.get('severity', ErrorSeverity.MEDIUM) if context else ErrorSeverity.MEDIUM
+        
+        return self.handle_error(error, component, operation, severity, context)
+    
     def _handle_critical_error(self, error_context: ErrorContext):
         """Handle critical errors that may require system shutdown or alerts."""
         print(f"CRITICAL ERROR: {error_context.message}")

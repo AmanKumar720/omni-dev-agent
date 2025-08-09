@@ -7,8 +7,161 @@ from .package_manager import PackageManager
 from ..project_analyzer.requirements_analyzer import analyze_requirements_document
 from ..dependency_monitor.monitor import check_for_new_dependency_versions, check_for_security_vulnerabilities
 from ..component_registry.registry import get_component_metadata
+import importlib
+import logging
 
 package_manager = PackageManager()
+logger = logging.getLogger(__name__)
+
+# Registry of loaded components for hot-plug support
+LOADED_COMPONENTS = {}
+
+def load_component_dynamically(component_name: str):
+    """
+    Dynamically load a component using hot-plug loading.
+    
+    Args:
+        component_name (str): The name of the component to load
+        
+    Returns:
+        The loaded component class or None if loading failed
+    """
+    try:
+        component_metadata = get_component_metadata(component_name)
+        
+        if not component_metadata:
+            logger.error(f"Component {component_name} not found in registry")
+            return None
+        
+        # Check if component supports hot-plugging
+        if not component_metadata.get('hot_pluggable', False):
+            logger.warning(f"Component {component_name} does not support hot-plug loading")
+            return None
+        
+        # Check if already loaded
+        if component_name in LOADED_COMPONENTS:
+            logger.info(f"Component {component_name} already loaded")
+            return LOADED_COMPONENTS[component_name]
+        
+        # Get component path and main class
+        component_path = component_metadata.get('component_path')
+        main_class = component_metadata.get('main_class')
+        
+        if not component_path or not main_class:
+            logger.error(f"Component {component_name} missing path or main_class in metadata")
+            return None
+        
+        # Dynamically import the component
+        logger.info(f"Loading component {component_name} from {component_path}")
+        module = importlib.import_module(component_path)
+        
+        # Get the main class from the module
+        component_class = getattr(module, main_class, None)
+        
+        if not component_class:
+            logger.error(f"Main class {main_class} not found in {component_path}")
+            return None
+        
+        # Cache the loaded component
+        LOADED_COMPONENTS[component_name] = component_class
+        
+        logger.info(f"Successfully loaded component {component_name}")
+        return component_class
+        
+    except ImportError as e:
+        logger.error(f"Failed to import component {component_name}: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error loading component {component_name}: {str(e)}")
+        return None
+
+def unload_component(component_name: str) -> bool:
+    """
+    Unload a dynamically loaded component.
+    
+    Args:
+        component_name (str): Name of the component to unload
+        
+    Returns:
+        bool: True if unloaded successfully, False otherwise
+    """
+    try:
+        if component_name in LOADED_COMPONENTS:
+            del LOADED_COMPONENTS[component_name]
+            logger.info(f"Component {component_name} unloaded successfully")
+            return True
+        else:
+            logger.warning(f"Component {component_name} not currently loaded")
+            return False
+    except Exception as e:
+        logger.error(f"Error unloading component {component_name}: {str(e)}")
+        return False
+
+def list_loaded_components() -> list:
+    """
+    List all currently loaded components.
+    
+    Returns:
+        list: List of loaded component names
+    """
+    return list(LOADED_COMPONENTS.keys())
+
+def reload_component(component_name: str):
+    """
+    Reload a component (unload and load again).
+    
+    Args:
+        component_name (str): Name of the component to reload
+        
+    Returns:
+        The reloaded component class or None if failed
+    """
+    logger.info(f"Reloading component {component_name}")
+    
+    # Unload first
+    unload_component(component_name)
+    
+    # Force module reload by removing from sys.modules if present
+    component_metadata = get_component_metadata(component_name)
+    if component_metadata:
+        component_path = component_metadata.get('component_path')
+        if component_path:
+            import sys
+            if component_path in sys.modules:
+                del sys.modules[component_path]
+                logger.debug(f"Removed {component_path} from sys.modules")
+    
+    # Load again
+    return load_component_dynamically(component_name)
+
+def create_component_instance(component_name: str, *args, **kwargs):
+    """
+    Create an instance of a dynamically loaded component.
+    
+    Args:
+        component_name (str): Name of the component
+        *args: Positional arguments for component constructor
+        **kwargs: Keyword arguments for component constructor
+        
+    Returns:
+        Component instance or None if failed
+    """
+    try:
+        component_class = load_component_dynamically(component_name)
+        
+        if not component_class:
+            logger.error(f"Failed to load component class for {component_name}")
+            return None
+        
+        # Create instance
+        instance = component_class(*args, **kwargs)
+        logger.info(f"Created instance of {component_name}")
+        
+        return instance
+        
+    except Exception as e:
+        logger.error(f"Failed to create instance of {component_name}: {str(e)}")
+        return None
 
 def request_component_integration(component_name: str, functionality_description: str, documentation_source: str = None):
     """
@@ -172,7 +325,7 @@ if __name__ == "__main__":
         documentation_content="Example Supabase documentation content."
     )
 
-=====================================")
+    print("\n=====================================")
     print("\n=====================================")
 
     # Example 2: Agent-initiated component identification from requirements document
@@ -187,7 +340,7 @@ if __name__ == "__main__":
     """
     analyze_project_requirements(mock_srs_content)
 
-=====================================")
+    print("\n=====================================")
     print("\n=====================================")
 
     # Example 3: Agent-initiated component identification from external events

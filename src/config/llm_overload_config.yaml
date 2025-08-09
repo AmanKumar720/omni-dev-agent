@@ -1,0 +1,188 @@
+# LLM Overload Handler Configuration
+# Customize these settings based on your API limits and requirements
+
+# Default configuration for general use
+default:
+  # Token management
+  context_window_size: 8192
+  max_context_utilization: 0.9  # Use up to 90% of context window
+  token_warning_threshold: 0.8   # Warn at 80% of limit
+  token_critical_threshold: 0.95 # Critical at 95% of limit
+  
+  # Retry and backoff settings
+  retry_attempts: 3
+  base_retry_delay: 1.0          # seconds
+  max_retry_delay: 60.0          # seconds
+  
+  # Circuit breaker
+  circuit_breaker_threshold: 5   # failures before opening circuit
+  circuit_breaker_timeout: 300   # seconds (5 minutes)
+  
+  # Token chunking
+  enable_token_chunking: true
+  chunk_overlap: 100             # token overlap between chunks
+
+# API limits (adjust based on your specific API plan)
+api_limits:
+  # OpenAI GPT-4 example limits
+  gpt4:
+    requests_per_minute: 500
+    tokens_per_minute: 10000
+    requests_per_hour: 10000
+    tokens_per_hour: 1000000
+    max_tokens_per_request: 8192
+    max_concurrent_requests: 10
+    daily_quota: 1000000
+  
+  # OpenAI GPT-3.5 example limits  
+  gpt3_5:
+    requests_per_minute: 3500
+    tokens_per_minute: 90000
+    requests_per_hour: 10000
+    tokens_per_hour: 2000000
+    max_tokens_per_request: 4096
+    max_concurrent_requests: 20
+    daily_quota: 5000000
+  
+  # Claude example limits
+  claude:
+    requests_per_minute: 1000
+    tokens_per_minute: 100000
+    requests_per_hour: 5000
+    tokens_per_hour: 1000000
+    max_tokens_per_request: 100000
+    max_concurrent_requests: 10
+    daily_quota: 2000000
+
+  # Google Gemini 1.5 Flash limits (adjust based on your free tier/plan)
+  gemini-1.5-flash:
+    requests_per_minute: 100
+    tokens_per_minute: 1000000
+    requests_per_hour: 6000
+    tokens_per_hour: 60000000
+    max_tokens_per_request: 1000000 # Gemini 1.5 Flash has a large context window
+    max_concurrent_requests: 5
+    daily_quota: 100000000
+
+  # Ollama Mistral limits (resource-based, set high for local use)
+  ollama-mistral:
+    requests_per_minute: 10000
+    tokens_per_minute: 10000000
+    requests_per_hour: 600000
+    tokens_per_hour: 600000000
+    max_tokens_per_request: 32768 # Mistral's typical context window
+    max_concurrent_requests: 10 # Adjust based on your local machine's capabilities
+    daily_quota: 1000000000
+
+# Service-specific configurations
+services:
+  # Vision analysis service - handles detailed scene descriptions
+  vision_analysis:
+    context_window_size: 8192
+    max_context_utilization: 0.85  # Leave more buffer for vision context
+    token_warning_threshold: 0.7
+    token_critical_threshold: 0.9
+    retry_attempts: 3
+    enable_token_chunking: true
+    chunk_overlap: 200              # More overlap for vision context continuity
+    
+  # Object detection service - quick responses needed
+  object_detection:
+    context_window_size: 4096
+    max_context_utilization: 0.8
+    token_warning_threshold: 0.6
+    token_critical_threshold: 0.8
+    retry_attempts: 2               # Fewer retries for speed
+    enable_token_chunking: false    # Don't chunk for quick detection
+    base_retry_delay: 0.5
+    
+  # Document analysis service - can handle longer processing
+  document_analysis:
+    context_window_size: 32768      # Larger context for documents
+    max_context_utilization: 0.95
+    token_warning_threshold: 0.85
+    token_critical_threshold: 0.98
+    retry_attempts: 5
+    enable_token_chunking: true
+    chunk_overlap: 500              # Large overlap for document continuity
+    max_retry_delay: 120.0          # Longer max delay acceptable
+    
+  # Real-time processing - aggressive limits
+  realtime:
+    context_window_size: 2048
+    max_context_utilization: 0.7
+    token_warning_threshold: 0.5
+    token_critical_threshold: 0.7
+    retry_attempts: 1               # Minimal retries for real-time
+    enable_token_chunking: false
+    base_retry_delay: 0.1
+    max_retry_delay: 2.0
+    circuit_breaker_threshold: 3
+
+# Environment-specific settings
+environments:
+  development:
+    # More lenient settings for development
+    token_warning_threshold: 0.9
+    token_critical_threshold: 0.99
+    retry_attempts: 5
+    circuit_breaker_threshold: 10
+    
+  production:
+    # Conservative settings for production
+    token_warning_threshold: 0.6
+    token_critical_threshold: 0.8
+    retry_attempts: 3
+    circuit_breaker_threshold: 3
+    
+  testing:
+    # Fast fail for testing
+    token_warning_threshold: 0.5
+    token_critical_threshold: 0.6
+    retry_attempts: 1
+    circuit_breaker_threshold: 1
+
+# Monitoring and alerting
+monitoring:
+  # Enable detailed logging
+  enable_detailed_logging: true
+  log_level: "INFO"
+  
+  # Metrics collection
+  collect_metrics: true
+  metrics_retention_hours: 24
+  
+  # Alerting thresholds
+  alerts:
+    high_token_utilization: 0.8
+    frequent_overloads: 5           # alerts if more than 5 overloads per hour
+    circuit_breaker_opened: true
+    consecutive_failures: 3
+
+# Cost management
+cost_management:
+  # Enable cost tracking
+  track_costs: true
+  
+  # Cost limits (in USD)
+  daily_cost_limit: 100.0
+  hourly_cost_limit: 10.0
+  
+  # Token pricing (adjust based on your API pricing)
+  token_costs:
+    gpt4_input: 0.00003            # per token
+    gpt4_output: 0.00006           # per token
+    gpt3_5_input: 0.0000015        # per token  
+    gpt3_5_output: 0.000002        # per token
+    gemini-1.5-flash_input: 0.0000005 # Example pricing, adjust as per Google Cloud
+    gemini-1.5-flash_output: 0.0000015 # Example pricing, adjust as per Google Cloud
+    ollama-mistral_input: 0.0      # Local model, no direct token cost
+    ollama-mistral_output: 0.0     # Local model, no direct token cost
+
+# Feature flags
+features:
+  enable_token_estimation: true
+  enable_context_optimization: true
+  enable_request_batching: true
+  enable_priority_queuing: false
+  enable_load_balancing: false

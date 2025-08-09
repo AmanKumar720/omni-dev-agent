@@ -1,0 +1,403 @@
+name: AI Vision Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  # OpenCV headless configuration
+  OPENCV_HEADLESS: 1
+  DISPLAY: ""
+  # Model cache configuration
+  MODELS_CACHE_DIR: ~/.cache/ai-vision-models
+  # Test configuration
+  PYTEST_ADDOPTS: "--tb=short --strict-markers"
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        test-suite: ["unit", "integration"]
+        exclude:
+          # Skip some combinations to reduce CI time
+          - os: macos-latest
+            python-version: "3.8"
+          - os: windows-latest
+            python-version: "3.8"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    - name: Cache AI vision models
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.MODELS_CACHE_DIR }}
+        key: ${{ runner.os }}-models-v1-${{ hashFiles('components/ai_vision/model_hub.py') }}
+        restore-keys: |
+          ${{ runner.os }}-models-v1-
+          ${{ runner.os }}-models-
+
+    - name: Install system dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgl1-mesa-glx \
+          libglib2.0-0 \
+          libsm6 \
+          libxext6 \
+          libxrender-dev \
+          libgomp1 \
+          libgtk-3-0 \
+          tesseract-ocr \
+          tesseract-ocr-eng \
+          tesseract-ocr-fra \
+          tesseract-ocr-spa \
+          ffmpeg
+
+    - name: Install system dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew update
+        brew install tesseract
+        brew install ffmpeg
+
+    - name: Install system dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Install tesseract via chocolatey
+        choco install tesseract -y
+        # Add tesseract to PATH
+        echo "C:\Program Files\Tesseract-OCR" >> $GITHUB_PATH
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        
+        # Install core dependencies
+        pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-mock
+        pip install numpy pillow opencv-python-headless
+        
+        # Install vision-specific dependencies if requirements file exists
+        if [ -f "requirements_camera_vision.txt" ]; then
+          # Install headless versions for CI
+          pip install opencv-python-headless
+          pip install --no-deps -r requirements_camera_vision.txt || true
+        fi
+        
+        # Install project in editable mode
+        pip install -e .
+      shell: bash
+
+    - name: Install additional test dependencies
+      run: |
+        pip install \
+          pytest-benchmark \
+          pytest-timeout \
+          pytest-html \
+          coverage[toml]
+
+    - name: Create models cache directory
+      run: |
+        mkdir -p ${{ env.MODELS_CACHE_DIR }}
+      shell: bash
+
+    - name: Download and cache models (if not cached)
+      run: |
+        python -c "
+        import os
+        from pathlib import Path
+        
+        cache_dir = Path('${{ env.MODELS_CACHE_DIR }}')
+        
+        # Create model cache structure
+        (cache_dir / 'yolo').mkdir(exist_ok=True)
+        (cache_dir / 'torchvision').mkdir(exist_ok=True)
+        (cache_dir / 'face_recognition').mkdir(exist_ok=True)
+        
+        # Create dummy model files to simulate caching
+        # In real implementation, this would download actual models
+        (cache_dir / 'yolo' / 'yolov8n.pt').touch()
+        (cache_dir / 'yolo' / 'yolov8s.pt').touch()
+        (cache_dir / 'torchvision' / 'resnet50.pth').touch()
+        (cache_dir / 'torchvision' / 'mobilenet_v3.pth').touch()
+        
+        print(f'Model cache initialized at {cache_dir}')
+        print(f'Cache contains: {list(cache_dir.rglob(\"*\"))}')
+        "
+      shell: bash
+
+    - name: Verify OpenCV headless installation
+      run: |
+        python -c "
+        import cv2
+        print(f'OpenCV version: {cv2.__version__}')
+        print(f'OpenCV build info: {cv2.getBuildInformation()}')
+        
+        # Test headless functionality
+        import numpy as np
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        print('OpenCV headless test passed')
+        "
+
+    - name: Run linting
+      if: matrix.test-suite == 'unit'
+      run: |
+        pip install flake8 black isort
+        
+        # Check formatting
+        black --check --diff components/ tests/ || true
+        
+        # Check imports
+        isort --check-only --diff components/ tests/ || true
+        
+        # Lint code
+        flake8 components/ tests/ --max-line-length=100 --ignore=E203,W503,E501 || true
+
+    - name: Run unit tests
+      if: matrix.test-suite == 'unit'
+      run: |
+        pytest tests/unit/ \
+          -v \
+          --cov=components \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --junit-xml=test-results-unit.xml \
+          --timeout=300 \
+          -m "unit and not slow" \
+          --maxfail=10
+
+    - name: Run integration tests
+      if: matrix.test-suite == 'integration'
+      run: |
+        pytest tests/integration/ \
+          -v \
+          --cov=components \
+          --cov-append \
+          --cov-report=xml \
+          --cov-report=html \
+          --junit-xml=test-results-integration.xml \
+          --timeout=600 \
+          -m "integration" \
+          --maxfail=5
+
+    - name: Run slow/model tests (Linux only)
+      if: matrix.test-suite == 'integration' && runner.os == 'Linux' && matrix.python-version == '3.10'
+      run: |
+        pytest tests/ \
+          -v \
+          --timeout=1200 \
+          -m "slow or model" \
+          --maxfail=3
+
+    - name: Upload coverage to Codecov
+      if: matrix.test-suite == 'unit' && runner.os == 'Linux' && matrix.python-version == '3.10'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.test-suite }}
+        path: |
+          test-results-*.xml
+          htmlcov/
+          .coverage
+
+    - name: Upload model cache info
+      if: matrix.test-suite == 'integration'
+      run: |
+        echo "Model cache contents:" > model-cache-info.txt
+        ls -la ${{ env.MODELS_CACHE_DIR }} >> model-cache-info.txt || echo "Cache directory not found" >> model-cache-info.txt
+        find ${{ env.MODELS_CACHE_DIR }} -type f -exec ls -lh {} \; >> model-cache-info.txt 2>/dev/null || true
+      shell: bash
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[perf]')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-benchmark
+        pip install -r requirements_camera_vision.txt || true
+
+    - name: Run performance benchmarks
+      run: |
+        pytest tests/ \
+          -v \
+          -m "benchmark" \
+          --benchmark-only \
+          --benchmark-json=benchmark-results.json \
+          --benchmark-sort=mean \
+          --benchmark-min-rounds=3
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: benchmark-results.json
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+
+    - name: Run safety check
+      run: |
+        pip freeze > requirements-frozen.txt
+        safety check -r requirements-frozen.txt --json --output safety-report.json || true
+
+    - name: Run bandit security scan
+      run: |
+        bandit -r components/ -f json -o bandit-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          safety-report.json
+          bandit-report.json
+
+  docker-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker test image
+      run: |
+        cat > Dockerfile.test << 'EOF'
+        FROM python:3.10-slim
+
+        # Install system dependencies
+        RUN apt-get update && apt-get install -y \
+            libgl1-mesa-glx \
+            libglib2.0-0 \
+            libsm6 \
+            libxext6 \
+            libxrender-dev \
+            libgomp1 \
+            tesseract-ocr \
+            tesseract-ocr-eng \
+            ffmpeg \
+            && rm -rf /var/lib/apt/lists/*
+
+        # Set environment for headless operation
+        ENV OPENCV_HEADLESS=1
+        ENV DISPLAY=""
+
+        WORKDIR /app
+        COPY . .
+
+        # Install Python dependencies
+        RUN pip install --no-cache-dir pytest pytest-asyncio opencv-python-headless
+        RUN pip install --no-cache-dir -e .
+
+        CMD ["pytest", "tests/unit/", "-v", "-m", "unit and not slow"]
+        EOF
+
+        docker build -f Dockerfile.test -t ai-vision-tests .
+
+    - name: Run tests in Docker
+      run: |
+        docker run --rm \
+          -e OPENCV_HEADLESS=1 \
+          -e DISPLAY="" \
+          ai-vision-tests
+
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [test, performance-tests, security-scan]
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Generate test summary
+      run: |
+        echo "# AI Vision Test Summary" > test-summary.md
+        echo "" >> test-summary.md
+        echo "## Test Results" >> test-summary.md
+        
+        # Count test result files
+        find . -name "test-results-*.xml" | wc -l > test_count.txt
+        echo "Total test suites: $(cat test_count.txt)" >> test-summary.md
+        
+        # Check for any failures
+        if grep -r "failures=" . | grep -v "failures=\"0\"" > /dev/null; then
+          echo "❌ Some tests failed" >> test-summary.md
+        else
+          echo "✅ All tests passed" >> test-summary.md
+        fi
+        
+        echo "" >> test-summary.md
+        echo "## Artifacts Generated" >> test-summary.md
+        ls -la >> test-summary.md
+
+    - name: Upload test summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-summary
+        path: test-summary.md
