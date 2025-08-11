@@ -1,7 +1,7 @@
 # Requirements for Camera Integration and Vision API
 
 # Flask and WebSocket support
-Flask==2.3.3
+Flask==3.1.1
 Flask-SocketIO==5.3.6
 python-socketio==5.9.0
 python-engineio==4.7.1
