@@ -231,7 +231,7 @@ jobs:
 
     - name: Verify Changed files
       if: github.ref == 'refs/heads/main' && success()
-      uses: tj-actions/verify-changed-files@v17
+      uses: tj-actions/verify-changed-files@v20
       id: verify-changed-files
       with:
         files: coverage-badge.svg
